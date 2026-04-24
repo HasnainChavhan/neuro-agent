@@ -1,0 +1,60 @@
+version: "3.9"
+
+# ════════════════════════════════════════════════════════════════
+# NeuroAgent — Docker Compose (local development + CI)
+# Services: neuro-agent (API) + postgres (pgvector)
+# ════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── PostgreSQL with pgvector extension ──────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: neuro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: neuro_agent
+      POSTGRES_USER: neuro
+      POSTGRES_PASSWORD: neuro_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../app/db/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neuro -d neuro_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── NeuroAgent FastAPI service ───────────────────────────────────
+  neuro-agent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: neuro-agent-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://neuro:neuro_secret@postgres:5432/neuro_agent
+      MOCK_LLM: "true"
+      LOG_LEVEL: info
+      ENVIRONMENT: development
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-mock-key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../app:/app/app:ro   # hot-reload source in dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  postgres_data:
+    driver: local

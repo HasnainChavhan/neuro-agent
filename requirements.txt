@@ -1,49 +1,18 @@
-# ── Core Framework ──────────────────────────────────────────────────────────
-fastapi==0.115.6
-uvicorn[standard]==0.32.1
-python-multipart==0.0.20
-
-# ── LangChain Agent Stack ────────────────────────────────────────────────────
-langchain==0.3.13
-langchain-openai==0.2.14
-langchain-community==0.3.13
-langgraph==0.2.60
-
-# ── OpenAI ───────────────────────────────────────────────────────────────────
-openai==1.58.1
-tiktoken==0.8.0
-
-# ── Database / pgvector ───────────────────────────────────────────────────────
-asyncpg==0.30.0
-sqlalchemy[asyncio]==2.0.36
-pgvector==0.3.6
-psycopg2-binary==2.9.10
-
-# ── Web Search ────────────────────────────────────────────────────────────────
-duckduckgo-search==7.2.1
-
-# ── HTTP / Async ──────────────────────────────────────────────────────────────
-httpx==0.28.1
-aiohttp==3.11.11
-tenacity==9.0.0
-
-# ── Data / Validation ─────────────────────────────────────────────────────────
-pydantic==2.10.4
-pydantic-settings==2.7.0
-
-# ── Text Processing ───────────────────────────────────────────────────────────
-beautifulsoup4==4.12.3
-lxml==5.3.0
-chardet==5.2.0
-
-# ── Observability ─────────────────────────────────────────────────────────────
-python-json-logger==3.2.1
-prometheus-client==0.21.1
-
-# ── Dev / Testing ─────────────────────────────────────────────────────────────
-pytest==8.3.4
-pytest-asyncio==0.25.0
-pytest-cov==6.0.0
-httpx==0.28.1
-python-dotenv==1.0.1
-ruff==0.9.1
+langchain>=0.1.0
+langchain-community>=0.0.20
+langchain-core>=0.1.10
+chromadb>=0.4.22
+sentence-transformers>=2.3.1
+transformers>=4.36.0
+torch>=2.1.0
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+streamlit>=1.28.0
+pypdf>=3.17.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+tiktoken>=0.5.2
+httpx>=0.25.2
+pytest>=7.4.0
+pytest-asyncio>=0.23.0

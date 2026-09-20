@@ -1,194 +1,159 @@
-# NeuroAgent 🧠
+# 🧠 NeuroAgent — RAG Document Chatbot
 
-**Autonomous AI Research Assistant** — multi-step agent that decomposes complex research queries, executes web searches, retrieves knowledge via RAG, synthesizes sources, and returns structured reports — end-to-end without human intervention.
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue?logo=python)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green?logo=fastapi)](https://fastapi.tiangolo.com)
+[![LangChain](https://img.shields.io/badge/LangChain-0.1-purple)](https://langchain.com)
+[![ChromaDB](https://img.shields.io/badge/ChromaDB-0.4-orange)](https://trychroma.com)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.28-red?logo=streamlit)](https://streamlit.io)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-Transformers-yellow?logo=huggingface)](https://huggingface.co)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://docker.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com)
-[![LangChain](https://img.shields.io/badge/LangChain-0.3-yellow.svg)](https://langchain.com)
-[![pgvector](https://img.shields.io/badge/pgvector-0.3-purple.svg)](https://github.com/pgvector/pgvector)
-[![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](https://docker.com)
+> **Production-grade RAG chatbot** that lets you upload documents (PDF/TXT) and ask questions in natural language — powered by LangChain, ChromaDB vector database, and open-source HuggingFace models. **No API key required.**
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
-Client (HTTP)
-    │
-    ▼
-FastAPI Gateway (async)          ← AWS Lambda + Docker, <800ms cold-start
-    │
-    ▼
-AgentOrchestrator                ← Query decomposition + concurrent dispatch
-    │
-    ├── WebSearchTool             ← DuckDuckGo / Brave / SerpAPI
-    ├── RAGRetrieverTool          ← pgvector cosine similarity search
-    ├── SynthesizerTool           ← GPT-4o structured synthesis
-    └── RetryRouter               ← Exponential backoff + fallback routing
-    │
-    ▼
-PostgreSQL + pgvector             ← 1536-dim embeddings, IVFFlat index
-    │
-    ▼
-ResearchReport (JSON + Markdown) ← Returned to client
+┌──────────────────────────────────────────────────────────────────┐
+│                     NeuroAgent RAG Pipeline                       │
+│                                                                  │
+│  PDF/TXT Document                                                │
+│       │                                                          │
+│       ▼                                                          │
+│  Document Loader ──► Text Splitter ──► Chunk Documents           │
+│  (PyPDFLoader)   (RecursiveChar)    (1000 tokens)               │
+│                              │                                   │
+│                              ▼                                   │
+│                  HuggingFace Embeddings                          │
+│               (all-MiniLM-L6-v2, 384-dim)                       │
+│                              │                                   │
+│                              ▼                                   │
+│                    ChromaDB Vector Store ◄── Similarity Search   │
+│                              │                   ▲              │
+│                              │                   │              │
+│                     User Question ────────────────┘             │
+│                              │                                   │
+│                              ▼                                   │
+│                    Prompt + Context ──► FLAN-T5 LLM              │
+│                                            │                    │
+│                                            ▼                    │
+│                                       Final Answer               │
+│                                      + Source Docs               │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-## Key Metrics
+---
 
-| Metric | Value |
-|---|---|
-| RAG relevance improvement | **+42%** vs naive LLM prompting |
-| Task completion rate | **98.7%** across 1,000+ simulated tasks |
-| Cold-start latency (Lambda) | **< 800ms** |
-| Max concurrent sessions | **100+** |
-| Supported search providers | DuckDuckGo, Brave, SerpAPI |
+## ✨ Features
 
-## Quick Start
+- 📄 **Upload any PDF or TXT document** — instantly indexed
+- 🔍 **Semantic search** via ChromaDB + sentence-transformers embeddings
+- 🤖 **Free LLM inference** — google/flan-t5-base, no API key needed
+- 💬 **Chat history** maintained across sessions
+- 📚 **Source attribution** — see which document sections were used
+- 🚀 **FastAPI backend** + **Streamlit UI** 
+- 🐳 **Docker Compose** — one-command startup
 
-### Prerequisites
-- Python 3.12+
-- Docker & Docker Compose
+---
 
-### 1. Clone & configure
+## 🛠️ Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| LLM | Google FLAN-T5 (HuggingFace, free) |
+| Embeddings | all-MiniLM-L6-v2 (384-dim) |
+| Vector DB | ChromaDB |
+| Orchestration | LangChain |
+| PDF Parsing | PyPDF |
+| API | FastAPI + Uvicorn |
+| UI | Streamlit |
+| Containerization | Docker |
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/your-org/neuro-agent
+# 1. Clone
+git clone https://github.com/HasnainChavhan/neuro-agent
 cd neuro-agent
-cp .env.example .env
-# Edit .env — set OPENAI_API_KEY or leave MOCK_LLM=true for demo mode
-```
 
-### 2. Start with Docker (recommended)
-
-```bash
-cd docker
-docker-compose up --build
-```
-
-This starts:
-- **PostgreSQL 16 + pgvector** (port 5432)
-- **NeuroAgent API** (port 8000)
-
-### 3. Run locally (without Docker)
-
-```bash
+# 2. Install dependencies
 pip install -r requirements.txt
-python app/main.py
+
+# 3. Start with Docker (recommended)
+docker-compose up --build
+
+# OR run locally:
+# Terminal 1 - API
+uvicorn src.api.main:app --reload --port 8000
+# Terminal 2 - UI
+streamlit run app/streamlit_app.py
 ```
 
-> **Note:** Without Docker, PostgreSQL is optional. Set `MOCK_LLM=true` to run fully in-memory.
+- **Streamlit UI**: http://localhost:8501
+- **FastAPI docs**: http://localhost:8000/docs
 
-### 4. Run a research query
+---
 
+## 📡 API Reference
+
+### POST `/upload` — Upload Document
 ```bash
-curl -X POST http://localhost:8000/api/v1/research \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What are the latest breakthroughs in quantum computing?"}'
+curl -X POST "http://localhost:8000/upload" \
+  -F "file=@document.pdf"
 ```
+Response: `{"message": "Document indexed", "chunks": 42}`
 
-**Response:**
+### POST `/chat` — Ask Question
+```bash
+curl -X POST "http://localhost:8000/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the main topic of this document?"}'
+```
+Response:
 ```json
 {
-  "task_id": "f47ac10b-...",
-  "query": "What are the latest breakthroughs in quantum computing?",
-  "answer": "## Answer\n\nQuantum computing has seen remarkable progress...",
-  "sources": ["https://nature.com/...", "https://arxiv.org/..."],
-  "sub_queries": ["Overview of quantum computing", "Recent breakthroughs", ...],
-  "latency_ms": 312.4,
-  "steps_taken": 7,
-  "retries": 0,
-  "tokens_used": 842,
-  "success": true
+  "answer": "The document discusses...",
+  "sources": ["chunk 1 excerpt...", "chunk 2 excerpt..."],
+  "processing_time": 1.23
 }
 ```
 
-## API Reference
+### GET `/stats` — Collection Statistics  
+### DELETE `/reset` — Clear vector store  
+### GET `/health` — Health check  
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/health` | Service health + metrics |
-| `POST` | `/api/v1/research` | Run autonomous research agent |
-| `POST` | `/api/v1/ingest` | Add document to knowledge base |
-| `GET` | `/api/v1/metrics` | Task completion statistics |
-| `GET` | `/docs` | Interactive Swagger UI |
+---
 
-## Running Tests
-
-```bash
-pip install -r requirements.txt
-pytest tests/ -v --cov=app --cov-report=term-missing
-```
-
-## Seeding the Knowledge Base
-
-```bash
-python scripts/seed_vector_store.py
-```
-
-Loads 5 domain documents (quantum, AI, biotech, energy, transformers) into pgvector.
-
-## RAG Benchmark
-
-```bash
-python scripts/eval_rag.py
-```
-
-Evaluates RAG-augmented answers vs naive prompting across 8 test queries.
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 neuro-agent/
+├── src/
+│   ├── config.py               # Configuration settings
+│   ├── document_processor.py   # PDF/TXT loading & chunking
+│   ├── vector_store.py         # ChromaDB management
+│   ├── rag_chain.py            # LangChain RAG pipeline
+│   └── api/
+│       ├── main.py             # FastAPI endpoints
+│       └── schemas.py          # Pydantic models
 ├── app/
-│   ├── main.py              # FastAPI app entry point
-│   ├── config.py            # Pydantic settings
-│   ├── agent/
-│   │   ├── orchestrator.py  # Main agent loop
-│   │   ├── planner.py       # Query decomposition
-│   │   ├── retry_router.py  # Retry + fallback logic
-│   │   └── tools/           # WebSearch, RAG, Synthesizer
-│   ├── rag/                 # Embedder, vector store, pipeline
-│   ├── db/                  # SQLAlchemy models + migrations
-│   ├── api/                 # FastAPI routes
-│   ├── models/              # Pydantic schemas
-│   └── utils/               # Logger, metrics
-├── tests/                   # Pytest test suite
-├── scripts/                 # Seed + eval scripts
-├── docker/                  # Dockerfile + docker-compose
-├── adr/                     # Architecture Decision Records
+│   └── streamlit_app.py        # Chat UI
+├── tests/                      # pytest suite
+├── sample_docs/sample.txt      # Demo document
+├── Dockerfile
+├── docker-compose.yml
 └── requirements.txt
 ```
 
-## Tech Stack
+---
 
-| Layer | Technology | Why |
-|---|---|---|
-| LLM | GPT-4o | Best structured output + tool calling |
-| Embeddings | text-embedding-3-small | Fast, cheap, 1536-dim |
-| Vector DB | PostgreSQL + pgvector | Zero extra infra, ACID |
-| Agent Framework | LangChain + LangGraph | Mature, rich tool ecosystem |
-| API | FastAPI (async) | Native async, auto-docs |
-| Deployment | AWS Lambda + Docker | <800ms cold-start |
-| ORM | SQLAlchemy (async) | asyncpg, connection pooling |
+## 📜 License
 
-## Architecture Decision Records
+MIT License — see [LICENSE](LICENSE)
 
-- [ADR 001 — LLM Choice: GPT-4o](adr/001-llm-choice.md)
-- [ADR 002 — Vector DB: pgvector](adr/002-vector-db.md)
-- [ADR 003 — Agent Framework: LangChain](adr/003-agent-framework.md)
-
-## Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `OPENAI_API_KEY` | `sk-mock-key` | OpenAI API key |
-| `MOCK_LLM` | `true` | Run without real API calls |
-| `DATABASE_URL` | `postgresql+asyncpg://...` | Postgres connection |
-| `SEARCH_PROVIDER` | `duckduckgo` | Web search backend |
-| `MAX_RETRIES` | `3` | Retry router attempts |
-| `RAG_TOP_K` | `5` | Vector search results |
-| `CHUNK_SIZE` | `512` | Text chunking size |
-
-## License
-
-MIT © NeuroAgent
+---
+*Built by [Hasnain Chavhan](https://github.com/HasnainChavhan) — Open to NLP / ML Engineer roles*
